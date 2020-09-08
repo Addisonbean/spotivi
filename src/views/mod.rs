@@ -1,4 +1,4 @@
-use crossterm::Result;
+use anyhow::Result;
 
 use crate::{Action, keybindings::KeyBinding};
 

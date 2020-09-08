@@ -6,3 +6,8 @@ edition = "2018"
 
 [dependencies]
 crossterm = "0.17"
+rspotify = "0.10"
+anyhow = "1.0"
+tokio = { version = "0.2", features = ["rt-core", "rt-threaded", "macros"] }
+xdg = "^2.1"
+regex = "1"

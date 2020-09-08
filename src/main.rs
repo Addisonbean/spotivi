@@ -1,22 +1,35 @@
-use std::io::{stdout, Write};
+use std::{
+    sync::Arc,
+    io::{stdout, Write},
+};
+
+use tokio;
+use std::sync::Mutex;
+
+#[macro_use]
+extern crate anyhow;
+
+use anyhow::Result;
 
 use crossterm::{
     execute,
     terminal as term,
-    Result,
     event,
-    queue,
     cursor,
 };
+
+mod config;
+mod keybindings;
+mod spotify;
+mod views;
+use config::Config;
+use keybindings::{KeyBinding, KeyBindings};
+use spotify::SpotifyApi;
+use views::{BoundingBox, Screen, AcceptsInput, playlist::PlaylistScreen};
 
 pub enum Action {
     Redraw,
 }
-
-mod views;
-mod keybindings;
-use views::{BoundingBox, Screen, AcceptsInput, playlist::PlaylistScreen};
-use keybindings::{KeyBinding, KeyBindings};
 
 struct App {
     playlists: PlaylistScreen,
@@ -28,11 +41,12 @@ impl App {
         keybindings::default_keybindings(&mut self.keybindings);
 
         term::enable_raw_mode()?;
-        queue!(
+        execute!(
             stdout(),
             term::EnterAlternateScreen,
             cursor::Hide,
         )?;
+
         Ok(())
     }
 
@@ -71,20 +85,43 @@ impl App {
     }
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
+    let config = Config::new()?;
+
+    let mut client = SpotifyApi::new(&config).await.expect("auth failed...");
+
     let mut app = App {
         playlists: views::playlist::PlaylistScreen::new(),
         keybindings: KeyBindings::new(),
     };
-
     app.start()?;
 
-    app.playlists.display(
-        BoundingBox { x: 0, y: 0, width: 100, height: 25 }
-    )?;
+    let app = Arc::new(Mutex::new(app));
+
+    // TODO: use message passing instead?
+    let api_app = Arc::clone(&app);
+    tokio::spawn(async move {
+        let ps = client.get_playlists().await.unwrap();
+
+        let mut app = api_app.lock().unwrap();
+        app.playlists.add_playlists(ps);
+        // TODO: move this... (and maybe the line above???)
+        app.playlists.display(
+            BoundingBox { x: 0, y: 0, width: 100, height: 25 }
+        ).unwrap();
+    });
+
+    {
+        let app = app.lock().unwrap();
+        app.playlists.display(
+            BoundingBox { x: 0, y: 0, width: 100, height: 25 }
+        )?;
+    }
 
     loop {
         if let Ok(event::Event::Key(e)) = event::read() {
+            let mut app = app.lock().unwrap();
             if let Some(&key) = app.keybindings.get(&e) {
                 if !app.handle_key(key)? {
                     return Ok(());

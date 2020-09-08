@@ -1,26 +1,26 @@
 use std::io::{stdout, Write};
 
-use crossterm::{cursor, queue, style, Result};
+use crossterm::{cursor, queue, style};
+
+use anyhow::Result;
 
 use crate::Action;
 use crate::keybindings::KeyBinding;
 use super::{AcceptsInput, BoundingBox, Screen, InteractiveList};
 
 pub struct PlaylistScreen {
-    playlists: InteractiveList<&'static str>,
+    playlists: InteractiveList<String>,
 }
 
 impl PlaylistScreen {
     pub fn new() -> PlaylistScreen {
         PlaylistScreen {
-            playlists: InteractiveList::new(vec!(
-                "anime vibes",
-                "quasipowered",
-                "hey there",
-                "vbrgiuoejrotiyueshd",
-                "naming things",
-            )),
+            playlists: InteractiveList::new(Vec::new()),
         }
+    }
+
+    pub fn add_playlists(&mut self, items: impl Iterator<Item=String>) {
+        self.playlists.items.extend(items);
     }
 }
 
