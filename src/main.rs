@@ -1,89 +1,22 @@
-use std::{
-    sync::Arc,
-    io::{stdout, Write},
-};
-
-use tokio;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 #[macro_use]
 extern crate anyhow;
 
 use anyhow::Result;
+use crossterm::event;
+use tokio;
 
-use crossterm::{
-    execute,
-    terminal as term,
-    event,
-    cursor,
-};
-
+mod app;
 mod config;
 mod keybindings;
 mod spotify;
 mod views;
+use app::App;
 use config::Config;
-use keybindings::{KeyBinding, KeyBindings};
+use keybindings::KeyBindings;
 use spotify::SpotifyApi;
-use views::{BoundingBox, Screen, AcceptsInput, playlist::PlaylistScreen};
-
-pub enum Action {
-    Redraw,
-}
-
-struct App {
-    playlists: PlaylistScreen,
-    keybindings: KeyBindings,
-}
-
-impl App {
-    fn start(&mut self) -> Result<()> {
-        keybindings::default_keybindings(&mut self.keybindings);
-
-        term::enable_raw_mode()?;
-        execute!(
-            stdout(),
-            term::EnterAlternateScreen,
-            cursor::Hide,
-        )?;
-
-        Ok(())
-    }
-
-    fn stop(&self) -> Result<()> {
-        term::disable_raw_mode()?;
-        execute!(
-            stdout(),
-            term::LeaveAlternateScreen,
-            cursor::Show,
-        )?;
-        Ok(())
-    }
-
-    fn handle_key(&mut self, key: KeyBinding) -> Result<bool> {
-        match key {
-            KeyBinding::Quit => {
-                self.stop()?;
-                return Ok(false);
-            }
-            _ => {
-                if let Some(res) = self.playlists.receive_input(key) {
-                    self.handle_action(res)?;
-                }
-            }
-        }
-        Ok(true)
-    }
-
-    fn handle_action(&mut self, action: Action) -> Result<()> {
-        match action {
-            Action::Redraw => self.playlists.display(
-                BoundingBox { x: 0, y: 0, width: 100, height: 25 }
-            )?,
-        }
-        Ok(())
-    }
-}
+use views::{BoundingBox, Screen};
 
 #[tokio::main]
 async fn main() -> Result<()> {

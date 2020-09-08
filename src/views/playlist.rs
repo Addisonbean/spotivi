@@ -4,8 +4,11 @@ use crossterm::{cursor, queue, style};
 
 use anyhow::Result;
 
-use crate::Action;
-use crate::keybindings::KeyBinding;
+use crate::{
+    app::Action,
+    keybindings::KeyBinding,
+};
+
 use super::{AcceptsInput, BoundingBox, Screen, InteractiveList};
 
 pub struct PlaylistScreen {

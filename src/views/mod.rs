@@ -1,6 +1,9 @@
 use anyhow::Result;
 
-use crate::{Action, keybindings::KeyBinding};
+use crate::{
+    app::Action,
+    keybindings::KeyBinding,
+};
 
 pub mod playlist;
 
