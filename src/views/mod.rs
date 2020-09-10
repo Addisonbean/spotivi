@@ -58,10 +58,15 @@ impl<T> InteractiveList<T> {
 impl<T> AcceptsInput for InteractiveList<T> {
     fn receive_input(&mut self, input: KeyBinding) -> Option<Action> {
         match input {
-            KeyBinding::Up => self.select_prev(),
-            KeyBinding::Down => self.select_next(),
+            KeyBinding::Up => {
+                self.select_prev();
+                Some(Action::Redraw)
+            }
+            KeyBinding::Down => {
+                self.select_next();
+                Some(Action::Redraw)
+            }
             _ => return None,
         }
-        Some(Action::Redraw)
     }
 }

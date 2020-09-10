@@ -1,22 +1,23 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    process::exit,
+    sync::{Arc, Mutex},
+};
 
 #[macro_use]
 extern crate anyhow;
 
 use anyhow::Result;
 use crossterm::event;
-use tokio;
+use tokio::{self, sync::mpsc};
 
 mod app;
 mod config;
 mod keybindings;
 mod spotify;
 mod views;
-use app::App;
+use app::{App, Action};
 use config::Config;
-use keybindings::KeyBindings;
 use spotify::SpotifyApi;
-use views::{BoundingBox, Screen};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -24,42 +25,47 @@ async fn main() -> Result<()> {
 
     let mut client = SpotifyApi::new(&config).await.expect("auth failed...");
 
-    let mut app = App {
-        playlists: views::playlist::PlaylistScreen::new(),
-        keybindings: KeyBindings::new(),
-    };
+    let mut app = App::new();
     app.start()?;
 
     let app = Arc::new(Mutex::new(app));
 
-    // TODO: use message passing instead?
-    let api_app = Arc::clone(&app);
+    // TODO: why 20? Is that enough? Too much???
+    // tx.send() docs should help
+    let (mut tx, mut rx) = mpsc::channel(20);
+    let mut api_tx = tx.clone();
     tokio::spawn(async move {
         let ps = client.get_playlists().await.unwrap();
+        let action = Action::AddPlaylists(ps.collect());
 
-        let mut app = api_app.lock().unwrap();
-        app.playlists.add_playlists(ps);
-        // TODO: move this... (and maybe the line above???)
-        app.playlists.display(
-            BoundingBox { x: 0, y: 0, width: 100, height: 25 }
-        ).unwrap();
+        api_tx.send(action).await.unwrap();
     });
 
-    {
-        let app = app.lock().unwrap();
-        app.playlists.display(
-            BoundingBox { x: 0, y: 0, width: 100, height: 25 }
-        )?;
-    }
+    // {
+    //     let app = app.lock().unwrap();
+    //     app.playlists.display(
+    //         BoundingBox { x: 0, y: 0, width: 100, height: 25 }
+    //     )?;
+    // }
 
-    loop {
-        if let Ok(event::Event::Key(e)) = event::read() {
-            let mut app = app.lock().unwrap();
-            if let Some(&key) = app.keybindings.get(&e) {
-                if !app.handle_key(key)? {
-                    return Ok(());
+    let app_keyhandler = Arc::clone(&app);
+    tokio::spawn(async move {
+        loop {
+            if let Ok(event::Event::Key(e)) = event::read() {
+                if let Some(&key) = config.keybindings.get(&e) {
+                    // TODO: don't unwrap here...
+                    let action = app_keyhandler.lock().unwrap().handle_key(key).unwrap();
+                    tx.send(action).await.unwrap();
                 }
             }
         }
+    });
+
+    while let Some(action) = rx.recv().await {
+        if !app.lock().unwrap().handle_action(action)? {
+            exit(0);
+        }
     }
+
+    Ok(())
 }

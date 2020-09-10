@@ -8,11 +8,14 @@ use anyhow::Result;
 use regex::Regex;
 use xdg::BaseDirectories;
 
+use crate::keybindings::{self, KeyBindings};
+
 pub struct Config {
     pub api_client_id: String,
     pub api_client_secret: String,
     pub redirect_uri: String,
 
+    pub keybindings: KeyBindings,
     pub cache_path: PathBuf,
     xdg_dirs: BaseDirectories,
 }
@@ -27,6 +30,8 @@ impl Config {
             conf.read_config_file(&mut config_file)?;
         }
 
+        keybindings::default_keybindings(&mut conf.keybindings);
+
         Ok(conf)
     }
 
@@ -37,6 +42,7 @@ impl Config {
             api_client_id: String::new(),
             api_client_secret: String::new(),
             redirect_uri: "http://localhost:8888/callback".to_owned(),
+            keybindings: KeyBindings::new(),
             cache_path: xdg_dirs.place_cache_file("api_auth.json")?,
             xdg_dirs,
         })

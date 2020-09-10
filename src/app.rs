@@ -1,6 +1,6 @@
 use std::io::{stdout, Write};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crossterm::{
     execute,
     terminal as term,
@@ -13,25 +13,20 @@ use crate::views::{
     playlist::PlaylistScreen,
     Screen,
 };
-use crate::keybindings::KeyBindings;
-use crate::keybindings::{self, KeyBinding};
+use crate::keybindings::KeyBinding;
 
 pub struct App {
-    pub playlists: PlaylistScreen,
-    pub keybindings: KeyBindings,
+    playlists: PlaylistScreen,
 }
 
 impl App {
     pub fn new() -> App {
         App {
             playlists: PlaylistScreen::new(),
-            keybindings: KeyBindings::new(),
         }
     }
 
     pub fn start(&mut self) -> Result<()> {
-        keybindings::default_keybindings(&mut self.keybindings);
-
         term::enable_raw_mode()?;
         execute!(
             stdout(),
@@ -52,31 +47,44 @@ impl App {
         Ok(())
     }
 
-    pub fn handle_key(&mut self, key: KeyBinding) -> Result<bool> {
-        match key {
+    pub fn handle_key(&mut self, key: KeyBinding) -> Result<Action> {
+        Ok(match key {
             KeyBinding::Quit => {
-                self.stop()?;
-                return Ok(false);
+                Action::Quit
             }
             _ => {
-                if let Some(res) = self.playlists.receive_input(key) {
-                    self.handle_action(res)?;
-                }
+                self.playlists.receive_input(key).context("TODO")?
             }
+        })
+    }
+
+    pub fn handle_action(&mut self, action: Action) -> Result<bool> {
+        match action {
+            Action::AddPlaylists(ps) => {
+                self.playlists.add_playlists(ps.into_iter());
+                // TODO: only display if visible...
+                self.playlists.display(
+                    BoundingBox { x: 0, y: 0, width: 100, height: 25 }
+                )?;
+            }
+            Action::Redraw =>
+                // TODO: redraw current screen only...
+                self.playlists.display(
+                    BoundingBox { x: 0, y: 0, width: 100, height: 25 }
+                )?,
+
+            Action::Quit => {
+                self.stop()?;
+                return Ok(false);
+            },
         }
         Ok(true)
     }
-
-    pub fn handle_action(&mut self, action: Action) -> Result<()> {
-        match action {
-            Action::Redraw => self.playlists.display(
-                BoundingBox { x: 0, y: 0, width: 100, height: 25 }
-            )?,
-        }
-        Ok(())
-    }
 }
 
+#[derive(Debug)]
 pub enum Action {
+    AddPlaylists(Vec<String>),
     Redraw,
+    Quit,
 }
