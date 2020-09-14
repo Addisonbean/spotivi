@@ -7,12 +7,11 @@ mod api;
 mod app;
 mod config;
 mod keybindings;
-mod spotify;
 mod views;
 
+use api::SpotifyApi;
 use app::App;
 use config::Config;
-use spotify::SpotifyApi;
 
 #[tokio::main]
 async fn main() -> Result<()> {

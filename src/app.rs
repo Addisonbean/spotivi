@@ -19,14 +19,12 @@ use crossterm::{
 
 use crate::views::{
     BoundingBox,
-    playlists::PlaylistsScreen,
+    PlaylistsScreen,
     Screen,
 };
-use crate::api::{Paged, PlaylistSummary, ApiRequest};
+use crate::api::{ApiRequest, Paged, PlaylistSummary, SpotifyApi};
 use crate::keybindings::KeyBinding;
-
 use crate::config::Config;
-use crate::spotify::SpotifyApi;
 
 pub struct App {
     screens: Vec<Box<dyn Screen + Send>>,
