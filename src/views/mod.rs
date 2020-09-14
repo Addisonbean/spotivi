@@ -7,7 +7,7 @@ use crate::{
     keybindings::KeyBinding,
 };
 
-pub mod playlist;
+// pub mod playlist;
 pub mod playlists;
 
 pub struct BoundingBox {
@@ -40,6 +40,10 @@ impl<T> InteractiveList<T> {
 
     pub fn iter(&self) -> impl Iterator<Item=&T> {
         self.items.iter()
+    }
+
+    pub fn into_iter(self) -> impl Iterator<Item=T> {
+        self.items.into_iter()
     }
 
     pub fn extend(&mut self, items: impl Iterator<Item=T>) {

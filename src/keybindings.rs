@@ -4,7 +4,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub type KeyBindings = HashMap<KeyEvent, KeyBinding>;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum KeyBinding {
     Up,
     Down,

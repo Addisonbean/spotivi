@@ -5,23 +5,22 @@ use crossterm::{cursor, queue, style};
 use anyhow::Result;
 
 use crate::{
-    api::Playlist,
+    api::{ApiRequest, Paged, PlaylistSummary},
     app::Action,
     keybindings::KeyBinding,
-    views::playlist::PlaylistScreen,
 };
 
-use super::{BoundingBox, Screen, InteractiveList};
+use super::{BoundingBox, Screen};
 
 #[derive(Debug)]
 pub struct PlaylistsScreen {
-    playlists: InteractiveList<String>,
+    playlists: Paged<PlaylistSummary>,
 }
 
 impl PlaylistsScreen {
     pub fn new() -> PlaylistsScreen {
         PlaylistsScreen {
-            playlists: InteractiveList::new(),
+            playlists: Paged::new(),
         }
     }
 }
@@ -35,8 +34,8 @@ impl Screen for PlaylistsScreen {
             cursor::MoveToNextLine(1),
         )?;
 
-        for (i, p) in self.playlists.items.iter().enumerate() {
-            if self.playlists.is_highlighted(i) {
+        for (i, p) in self.playlists.items().iter().enumerate() {
+            if self.playlists.items().is_highlighted(i) {
                 queue!(
                     stdout(),
                     style::SetAttribute(style::Attribute::Reverse),
@@ -44,7 +43,7 @@ impl Screen for PlaylistsScreen {
             }
             queue!(
                 stdout(),
-                style::Print(p),
+                style::Print(p.name()),
                 cursor::MoveToNextLine(1),
                 style::SetAttribute(style::Attribute::Reset),
             )?;
@@ -58,20 +57,17 @@ impl Screen for PlaylistsScreen {
     fn receive_input(&mut self, input: KeyBinding) -> Option<Action> {
         Some(match input {
             KeyBinding::Enter => {
-                let p = Playlist::new(
-                    self.playlists.selected_item()?.clone(),
-                    vec!["heyo".to_owned(), "there".to_owned()],
-                );
-                Action::PushScreen(Box::new(PlaylistScreen::new(p)))
+                let id = self.playlists.items().selected_item()?.id();
+                Action::Request(ApiRequest::GetPlaylist(id.to_owned()))
             }
-            _ => return self.playlists.receive_input(input),
+            _ => return self.playlists.items_mut().receive_input(input),
         })
     }
 
     fn handle_action(&mut self, action: Action) -> Result<()> {
         match action {
-            Action::AddPlaylists(ps) => {
-                self.playlists.extend(ps.into_iter());
+            Action::AddPlaylists(p) => {
+                self.playlists.add_page(p);
                 self.display(
                     BoundingBox { x: 0, y: 0, width: 100, height: 25 }
                 )?;
