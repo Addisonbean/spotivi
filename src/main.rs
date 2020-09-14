@@ -10,6 +10,7 @@ use anyhow::Result;
 use crossterm::event;
 use tokio::{self, sync::mpsc};
 
+mod api;
 mod app;
 mod config;
 mod keybindings;
@@ -41,13 +42,6 @@ async fn main() -> Result<()> {
         api_tx.send(action).await.unwrap();
     });
 
-    // {
-    //     let app = app.lock().unwrap();
-    //     app.playlists.display(
-    //         BoundingBox { x: 0, y: 0, width: 100, height: 25 }
-    //     )?;
-    // }
-
     let app_keyhandler = Arc::clone(&app);
     tokio::spawn(async move {
         loop {
@@ -55,7 +49,9 @@ async fn main() -> Result<()> {
                 if let Some(&key) = config.keybindings.get(&e) {
                     // TODO: don't unwrap here...
                     let action = app_keyhandler.lock().unwrap().handle_key(key).unwrap();
-                    tx.send(action).await.unwrap();
+                    if let Some(a) = action {
+                        tx.send(a).await.unwrap();
+                    }
                 }
             }
         }

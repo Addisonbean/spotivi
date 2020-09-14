@@ -8,8 +8,7 @@ pub type KeyBindings = HashMap<KeyEvent, KeyBinding>;
 pub enum KeyBinding {
     Up,
     Down,
-    // Left,
-    // Right,
+    Enter,
     Quit,
 }
 
@@ -21,4 +20,8 @@ pub fn default_keybindings(keys: &mut KeyBindings) {
     keys.insert(char_event('q', None), KeyBinding::Quit);
     keys.insert(char_event('k', None), KeyBinding::Up);
     keys.insert(char_event('j', None), KeyBinding::Down);
+    keys.insert(
+        KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+        KeyBinding::Enter,
+    );
 }

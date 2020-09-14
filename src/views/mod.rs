@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use anyhow::Result;
 
 use crate::{
@@ -6,6 +8,7 @@ use crate::{
 };
 
 pub mod playlist;
+pub mod playlists;
 
 pub struct BoundingBox {
     pub x: u16,
@@ -14,22 +17,33 @@ pub struct BoundingBox {
     pub height: u16,
 }
 
-pub trait AcceptsInput {
-    fn receive_input(&mut self, input: KeyBinding) -> Option<Action>;
-}
-
-pub trait Screen {
+pub trait Screen: Debug {
     fn display(&self, bounds: BoundingBox) -> Result<()>;
+    fn receive_input(&mut self, input: KeyBinding) -> Option<Action>;
+    fn handle_action(&mut self, action: Action) -> Result<()>;
 }
 
+#[derive(Debug)]
 pub struct InteractiveList<T> {
     index: usize,
     items: Vec<T>,
 }
 
 impl<T> InteractiveList<T> {
-    pub fn new(items: Vec<T>) -> InteractiveList<T> {
+    pub fn new() -> InteractiveList<T> {
+        InteractiveList { index: 0, items: Vec::new() }
+    }
+
+    pub fn from(items: Vec<T>) -> InteractiveList<T> {
         InteractiveList { index: 0, items }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item=&T> {
+        self.items.iter()
+    }
+
+    pub fn extend(&mut self, items: impl Iterator<Item=T>) {
+        self.items.extend(items);
     }
 
     pub fn selected_item(&self) -> Option<&T> {
@@ -53,9 +67,7 @@ impl<T> InteractiveList<T> {
     pub fn is_highlighted(&self, i: usize) -> bool {
         self.index == i
     }
-}
 
-impl<T> AcceptsInput for InteractiveList<T> {
     fn receive_input(&mut self, input: KeyBinding) -> Option<Action> {
         match input {
             KeyBinding::Up => {

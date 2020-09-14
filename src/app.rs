@@ -1,6 +1,6 @@
 use std::io::{stdout, Write};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use crossterm::{
     execute,
     terminal as term,
@@ -8,22 +8,29 @@ use crossterm::{
 };
 
 use crate::views::{
-    AcceptsInput,
     BoundingBox,
-    playlist::PlaylistScreen,
+    playlists::PlaylistsScreen,
     Screen,
 };
 use crate::keybindings::KeyBinding;
 
 pub struct App {
-    playlists: PlaylistScreen,
+    screens: Vec<Box<dyn Screen + Send>>,
 }
 
 impl App {
     pub fn new() -> App {
         App {
-            playlists: PlaylistScreen::new(),
+            screens: vec![Box::new(PlaylistsScreen::new())],
         }
+    }
+
+    fn current_screen(&self) -> &dyn Screen {
+        self.screens.last().unwrap().as_ref()
+    }
+
+    fn current_screen_mut(&mut self) -> &mut dyn Screen {
+        self.screens.last_mut().unwrap().as_mut()
     }
 
     pub fn start(&mut self) -> Result<()> {
@@ -47,36 +54,41 @@ impl App {
         Ok(())
     }
 
-    pub fn handle_key(&mut self, key: KeyBinding) -> Result<Action> {
+    pub fn handle_key(&mut self, key: KeyBinding) -> Result<Option<Action>> {
         Ok(match key {
             KeyBinding::Quit => {
-                Action::Quit
+                Some(Action::Quit)
             }
             _ => {
-                self.playlists.receive_input(key).context("TODO")?
+                self.current_screen_mut().receive_input(key)
             }
         })
     }
 
+    pub fn redraw(&mut self) -> Result<()> {
+        execute!(stdout(), term::Clear(term::ClearType::All))?;
+
+        self.current_screen().display(
+            BoundingBox { x: 0, y: 0, width: 100, height: 25 }
+        )?;
+
+        Ok(())
+    }
+
     pub fn handle_action(&mut self, action: Action) -> Result<bool> {
         match action {
-            Action::AddPlaylists(ps) => {
-                self.playlists.add_playlists(ps.into_iter());
-                // TODO: only display if visible...
-                self.playlists.display(
-                    BoundingBox { x: 0, y: 0, width: 100, height: 25 }
-                )?;
+            Action::PushScreen(s) => {
+                self.screens.push(s);
+                self.redraw()?;
             }
-            Action::Redraw =>
-                // TODO: redraw current screen only...
-                self.playlists.display(
-                    BoundingBox { x: 0, y: 0, width: 100, height: 25 }
-                )?,
-
+            Action::Redraw => {
+                self.redraw()?;
+            }
             Action::Quit => {
                 self.stop()?;
                 return Ok(false);
             },
+            _ => self.current_screen_mut().handle_action(action)?,
         }
         Ok(true)
     }
@@ -87,4 +99,5 @@ pub enum Action {
     AddPlaylists(Vec<String>),
     Redraw,
     Quit,
+    PushScreen(Box<dyn Screen + Send>),
 }
