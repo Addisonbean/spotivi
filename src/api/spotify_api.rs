@@ -4,7 +4,7 @@ use rspotify::oauth2::SpotifyClientCredentials;
 use rspotify::oauth2::SpotifyOAuth;
 
 use crate::config::Config;
-use crate::api::{Paged, PlaylistSummary};
+use crate::api::{Paged, Playlist, PlaylistSummary};
 
 pub struct SpotifyApi {
     client: Spotify,
@@ -25,14 +25,13 @@ impl SpotifyApi {
             .map(Into::into)
     }
 
-    // pub async fn get_playlist(&mut self, id: String) -> Result<Paged<String>> {
-    //
-    //     // self.client
-    //     //     .current_user_playlists(8, 0)
-    //     //     .await
-    //     //     .map_err(|e| anyhow!(e))
-    //     //     .map(Into::into)
-    // }
+    pub async fn get_playlist(&self, id: &str) -> Result<Playlist> {
+        self.client
+            .playlist(id, None, None)
+            .await
+            .map_err(|e| anyhow!(e))
+            .map(Into::into)
+    }
 }
 
 async fn make_spotify_client(config: &Config) -> Option<Spotify> {

@@ -5,8 +5,8 @@ use crossterm::{cursor, queue, style};
 use anyhow::Result;
 
 use crate::{
-    api::{ApiRequest, Paged, PlaylistSummary},
-    app::Action,
+    api::{Paged, PlaylistSummary},
+    app::{Action, ScreenId},
     keybindings::KeyBinding,
 };
 
@@ -58,7 +58,7 @@ impl Screen for PlaylistsScreen {
         Some(match input {
             KeyBinding::Enter => {
                 let id = self.playlists.items().selected_item()?.id();
-                Action::Request(ApiRequest::GetPlaylist(id.to_owned()))
+                Action::LoadScreen(ScreenId::Playlist(id.to_owned()))
             }
             _ => return self.playlists.items_mut().receive_input(input),
         })

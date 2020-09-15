@@ -25,6 +25,7 @@ impl<T> Paged<T> {
     }
 
     // TODO: THIS METHOD SHOULDN'T EXIST...
+    // (have some way to just directly call self.items.handle_input)
     pub fn items_mut(&mut self) -> &mut InteractiveList<T> {
         &mut self.items
     }

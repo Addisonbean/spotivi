@@ -7,8 +7,9 @@ use crate::{
     keybindings::KeyBinding,
 };
 
-// pub mod playlist_screen;
+mod playlist_screen;
 mod playlists_screen;
+pub use playlist_screen::PlaylistScreen;
 pub use playlists_screen::PlaylistsScreen;
 
 pub struct BoundingBox {

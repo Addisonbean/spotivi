@@ -30,16 +30,21 @@ impl Screen for PlaylistScreen {
             cursor::MoveToNextLine(1),
         )?;
 
-        for (i, p) in self.playlist.items().iter().enumerate() {
+        for (i, t) in self.playlist.items().iter().enumerate() {
             if self.playlist.items().is_highlighted(i) {
                 queue!(
                     stdout(),
                     style::SetAttribute(style::Attribute::Reverse),
                 )?;
             }
+            let name = if let Some(ref track) = t.track {
+                &track.name
+            } else {
+                "(N/A)"
+            };
             queue!(
                 stdout(),
-                style::Print(p),
+                style::Print(name),
                 cursor::MoveToNextLine(1),
                 style::SetAttribute(style::Attribute::Reset),
             )?;

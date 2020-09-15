@@ -19,10 +19,11 @@ use crossterm::{
 
 use crate::views::{
     BoundingBox,
+    PlaylistScreen,
     PlaylistsScreen,
     Screen,
 };
-use crate::api::{ApiRequest, Paged, PlaylistSummary, SpotifyApi};
+use crate::api::{Paged, PlaylistSummary, SpotifyApi};
 use crate::keybindings::KeyBinding;
 use crate::config::Config;
 
@@ -114,6 +115,9 @@ impl App {
                     return self.handle_action(a);
                 }
             }
+            Action::LoadScreen(screen_id) => {
+                self.load_screen(screen_id)?;
+            }
             Action::PushScreen(s) => {
                 self.screens.push(s);
                 self.redraw()?;
@@ -125,10 +129,6 @@ impl App {
                 self.stop()?;
                 return Ok(false);
             },
-            Action::Request(_r) => {
-                // tokio::spawn(async move {
-                // });
-            }
             _ => self.current_screen_mut().handle_action(action)?,
         }
         Ok(true)
@@ -148,6 +148,22 @@ impl App {
         });
     }
 
+    pub fn load_screen(&self, screen_id: ScreenId) -> Result<()> {
+        let api = Arc::clone(&self.api);
+        let tx = self.sender.clone();
+        match screen_id {
+            ScreenId::Playlist(id) => {
+                tokio::spawn(async move {
+                    let p = api.get_playlist(&id).await.unwrap();
+                    let screen = Box::new(PlaylistScreen::new(p));
+
+                    tx.send(Action::PushScreen(screen)).unwrap();
+                });
+            }
+        }
+        Ok(())
+    }
+
     pub async fn main_loop(&mut self) -> Result<()> {
         loop {
             let action = self.receiver.recv()?;
@@ -163,7 +179,12 @@ pub enum Action {
     AddPlaylists(Paged<PlaylistSummary>),
     Redraw,
     Quit,
-    PushScreen(Box<dyn Screen + Send>),
-    Request(ApiRequest),
+    LoadScreen(ScreenId),
+    PushScreen(Box<dyn Screen + Send + Sync>),
     Key(KeyBinding),
+}
+
+#[derive(Debug)]
+pub enum ScreenId {
+    Playlist(String),
 }

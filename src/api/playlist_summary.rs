@@ -7,10 +7,6 @@ pub struct PlaylistSummary {
 }
 
 impl PlaylistSummary {
-    pub fn new(name: String, id: String) -> PlaylistSummary {
-        PlaylistSummary { name, id }
-    }
-
     pub fn name(&self) -> &str {
         &self.name
     }
