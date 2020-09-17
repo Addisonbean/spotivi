@@ -81,7 +81,7 @@ impl App {
         let api = Arc::clone(&self.api);
         let tx = self.sender.clone();
         tokio::spawn(async move {
-            let ps = api.get_playlists().await.unwrap();
+            let ps = api.get_playlists(0).await.unwrap();
             let action = Action::AddPlaylists(ps);
             tx.send(action).unwrap();
         });
@@ -129,6 +129,14 @@ impl App {
                 self.stop()?;
                 return Ok(false);
             },
+            Action::LoadPlaylistsPage(index) => {
+                let tx = self.sender.clone();
+                let api = Arc::clone(&self.api);
+                tokio::spawn(async move {
+                    let p = api.get_playlists(index).await.unwrap();
+                    tx.send(Action::AddPlaylists(p)).unwrap();
+                });
+            }
             _ => self.current_screen_mut().handle_action(action)?,
         }
         Ok(true)
@@ -182,6 +190,7 @@ pub enum Action {
     LoadScreen(ScreenId),
     PushScreen(Box<dyn Screen + Send + Sync>),
     Key(KeyBinding),
+    LoadPlaylistsPage(u32),
 }
 
 #[derive(Debug)]

@@ -6,6 +6,8 @@ use rspotify::oauth2::SpotifyOAuth;
 use crate::config::Config;
 use crate::api::{Paged, Playlist, PlaylistSummary};
 
+pub const PAGE_SIZE: u32 = 8;
+
 pub struct SpotifyApi {
     client: Spotify,
 }
@@ -17,9 +19,9 @@ impl SpotifyApi {
         })
     }
 
-    pub async fn get_playlists(&self) -> Result<Paged<PlaylistSummary>> {
+    pub async fn get_playlists(&self, page_num: u32) -> Result<Paged<PlaylistSummary>> {
         self.client
-            .current_user_playlists(8, 0)
+            .current_user_playlists(PAGE_SIZE, PAGE_SIZE * page_num)
             .await
             .map_err(|e| anyhow!(e))
             .map(Into::into)

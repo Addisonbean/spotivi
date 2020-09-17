@@ -60,7 +60,7 @@ impl Screen for PlaylistsScreen {
                 let id = self.playlists.items().selected_item()?.id();
                 Action::LoadScreen(ScreenId::Playlist(id.to_owned()))
             }
-            _ => return self.playlists.items_mut().receive_input(input),
+            _ => return self.playlists.receive_input(input),
         })
     }
 
