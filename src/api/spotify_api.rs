@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use rspotify::client::Spotify;
 use rspotify::oauth2::SpotifyClientCredentials;
@@ -13,7 +15,7 @@ pub struct SpotifyApi {
 }
 
 impl SpotifyApi {
-    pub async fn new(config: &Config) -> Option<SpotifyApi> {
+    pub async fn new(config: Arc<Config>) -> Option<SpotifyApi> {
         Some(SpotifyApi {
             client: make_spotify_client(config).await?,
         })
@@ -36,7 +38,7 @@ impl SpotifyApi {
     }
 }
 
-async fn make_spotify_client(config: &Config) -> Option<Spotify> {
+async fn make_spotify_client(config: Arc<Config>) -> Option<Spotify> {
     let mut oauth = SpotifyOAuth::default()
         .client_id(&config.api_client_id)
         .client_secret(&config.api_client_secret)

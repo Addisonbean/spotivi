@@ -56,6 +56,10 @@ impl<T> InteractiveList<T> {
         self.index
     }
 
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
     pub fn receive_input(&mut self, input: KeyBinding) -> Option<Action> {
         match input {
             KeyBinding::Up => {

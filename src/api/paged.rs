@@ -1,7 +1,7 @@
 use rspotify::model::page::Page;
 
 use crate::{
-    app::Action,
+    app::{Action, NetworkRequest},
     keybindings::KeyBinding,
     api::InteractiveList,
     api::spotify_api::PAGE_SIZE,
@@ -68,7 +68,7 @@ impl<T> Paged<T> {
                     // Make a identifier for pages???
                     // Also TODO: don't keep trying to load more pages when loading one already...
                     // Another TODO: still redraw, but also load a page...
-                    Some(ref p) if self.needs_next_page() => Some(Action::LoadPlaylistsPage(p.index)),
+                    Some(ref p) if self.needs_next_page() => Some(Action::NetworkRequest(NetworkRequest::LoadPlaylistsPage(p.index))),
                     _ => Some(Action::Redraw),
                 }
             }
@@ -77,7 +77,7 @@ impl<T> Paged<T> {
     }
 
     fn needs_next_page(&self) -> bool {
-        self.items.index() >= PAGE_SIZE as usize * 3 / 4
+        (self.items.len() - self.items.index()) <= PAGE_SIZE as usize / 4
     }
 }
 

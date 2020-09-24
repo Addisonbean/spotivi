@@ -6,7 +6,7 @@ use anyhow::Result;
 
 use crate::{
     api::{Paged, PlaylistSummary},
-    app::{Action, ScreenId},
+    app::{Action, NetworkRequest},
     keybindings::KeyBinding,
 };
 
@@ -58,13 +58,13 @@ impl Screen for PlaylistsScreen {
         Some(match input {
             KeyBinding::Enter => {
                 let id = self.playlists.items().selected_item()?.id();
-                Action::LoadScreen(ScreenId::Playlist(id.to_owned()))
+                Action::NetworkRequest(NetworkRequest::LoadPlaylist(id.to_owned()))
             }
             _ => return self.playlists.receive_input(input),
         })
     }
 
-    fn handle_action(&mut self, action: Action) -> Result<()> {
+    fn notify(&mut self, action: Action) -> Result<()> {
         match action {
             Action::AddPlaylists(p) => {
                 self.playlists.add_page(p);

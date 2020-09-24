@@ -59,7 +59,7 @@ impl Screen for PlaylistScreen {
         self.playlist.items_mut().receive_input(input)
     }
 
-    fn handle_action(&mut self, _action: Action) -> Result<()> {
+    fn notify(&mut self, _action: Action) -> Result<()> {
         Ok(())
     }
 }

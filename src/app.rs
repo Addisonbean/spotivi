@@ -1,17 +1,11 @@
 use std::io::{stdout, Write};
 use std::process::exit;
-use std::sync::{
-    Arc,
-    mpsc::{
-        self,
-        Sender,
-        Receiver,
-    },
-};
+use std::sync::Arc;
+
+use tokio::sync::mpsc::Sender;
 
 use anyhow::Result;
 use crossterm::{
-    event,
     execute,
     terminal as term,
     cursor,
@@ -19,32 +13,26 @@ use crossterm::{
 
 use crate::views::{
     BoundingBox,
-    PlaylistScreen,
     PlaylistsScreen,
     Screen,
 };
-use crate::api::{Paged, PlaylistSummary, SpotifyApi};
+use crate::api::{Paged, PlaylistSummary};
 use crate::keybindings::KeyBinding;
 use crate::config::Config;
 
 pub struct App {
     screens: Vec<Box<dyn Screen + Send>>,
-    api: Arc<SpotifyApi>,
     config: Arc<Config>,
-    sender: Sender<Action>,
-    receiver: Receiver<Action>,
+    sender: Sender<NetworkRequest>,
 }
 
 impl App {
-    pub fn new(config: Config, api: SpotifyApi) -> App {
-        let (sender, receiver) = mpsc::channel();
+    pub fn new(sender: Sender<NetworkRequest>, config: Arc<Config>) -> App {
         let screens = vec![Box::new(PlaylistsScreen::new()) as Box<dyn Screen + Send>];
         App {
             screens,
-            api: Arc::new(api),
-            config: Arc::new(config),
+            config,
             sender,
-            receiver,
         }
     }
 
@@ -77,25 +65,20 @@ impl App {
         Ok(())
     }
 
-    pub fn init_data(&self) {
-        let api = Arc::clone(&self.api);
-        let tx = self.sender.clone();
-        tokio::spawn(async move {
-            let ps = api.get_playlists(0).await.unwrap();
-            let action = Action::AddPlaylists(ps);
-            tx.send(action).unwrap();
-        });
-    }
-
-    pub fn handle_key(&mut self, key: KeyBinding) -> Result<Option<Action>> {
-        Ok(match key {
+    pub async fn handle_key(&mut self, key: KeyBinding) -> Result<()> {
+        match key {
             KeyBinding::Quit => {
-                Some(Action::Quit)
+                self.stop()?;
+                exit(0);
             }
             _ => {
-                self.current_screen_mut().receive_input(key)
+                if let Some(a) = self.current_screen_mut().receive_input(key) {
+                    self.handle_action(a).await.unwrap();
+                }
+
             }
-        })
+        }
+        Ok(())
     }
 
     pub fn redraw(&mut self) -> Result<()> {
@@ -108,20 +91,8 @@ impl App {
         Ok(())
     }
 
-    pub fn handle_action(&mut self, action: Action) -> Result<bool> {
+    pub async fn handle_action(&mut self, action: Action) -> Result<bool> {
         match action {
-            Action::Key(k) => {
-                if let Some(a) = self.handle_key(k)? {
-                    return self.handle_action(a);
-                }
-            }
-            Action::LoadScreen(screen_id) => {
-                self.load_screen(screen_id)?;
-            }
-            Action::PushScreen(s) => {
-                self.screens.push(s);
-                self.redraw()?;
-            }
             Action::Redraw => {
                 self.redraw()?;
             }
@@ -129,56 +100,22 @@ impl App {
                 self.stop()?;
                 return Ok(false);
             },
-            Action::LoadPlaylistsPage(index) => {
-                let tx = self.sender.clone();
-                let api = Arc::clone(&self.api);
-                tokio::spawn(async move {
-                    let p = api.get_playlists(index).await.unwrap();
-                    tx.send(Action::AddPlaylists(p)).unwrap();
-                });
+            Action::NetworkRequest(r) => {
+                self.redraw()?;
+                self.sender.send(r).await?;
             }
-            _ => self.current_screen_mut().handle_action(action)?,
+            _ => self.notify(action)?,
         }
         Ok(true)
     }
 
-    pub fn handle_keys(&self) {
-        let config = Arc::clone(&self.config);
-        let tx = self.sender.clone();
-        tokio::spawn(async move {
-            loop {
-                if let Ok(event::Event::Key(e)) = event::read() {
-                    if let Some(&key) = config.keybindings.get(&e) {
-                        tx.send(Action::Key(key)).unwrap();
-                    }
-                }
-            }
-        });
+    pub fn notify(&mut self, action: Action) -> Result<()> {
+        self.current_screen_mut().notify(action)
     }
 
-    pub fn load_screen(&self, screen_id: ScreenId) -> Result<()> {
-        let api = Arc::clone(&self.api);
-        let tx = self.sender.clone();
-        match screen_id {
-            ScreenId::Playlist(id) => {
-                tokio::spawn(async move {
-                    let p = api.get_playlist(&id).await.unwrap();
-                    let screen = Box::new(PlaylistScreen::new(p));
-
-                    tx.send(Action::PushScreen(screen)).unwrap();
-                });
-            }
-        }
-        Ok(())
-    }
-
-    pub async fn main_loop(&mut self) -> Result<()> {
-        loop {
-            let action = self.receiver.recv()?;
-            if !self.handle_action(action)? {
-                exit(0);
-            }
-        }
+    pub fn add_screen(&mut self, s: Box<dyn Screen + Send + Sync>) -> Result<()> {
+        self.screens.push(s);
+        self.redraw()
     }
 }
 
@@ -190,7 +127,13 @@ pub enum Action {
     LoadScreen(ScreenId),
     PushScreen(Box<dyn Screen + Send + Sync>),
     Key(KeyBinding),
+    NetworkRequest(NetworkRequest),
+}
+
+#[derive(Debug)]
+pub enum NetworkRequest {
     LoadPlaylistsPage(u32),
+    LoadPlaylist(String),
 }
 
 #[derive(Debug)]
