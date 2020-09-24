@@ -7,6 +7,7 @@ use crossterm::{
     execute,
     terminal as term,
     cursor,
+    queue,
 };
 
 use crate::views::{
@@ -61,7 +62,7 @@ impl App {
         Ok(())
     }
 
-    pub async fn handle_key(&mut self, key: KeyBinding) -> Result<()> {
+    pub fn handle_key(&mut self, key: KeyBinding) -> Result<()> {
         match key {
             KeyBinding::Quit => {
                 self.stop()?;
@@ -69,7 +70,7 @@ impl App {
             }
             _ => {
                 if let Some(a) = self.current_screen_mut().receive_input(key) {
-                    self.handle_action(a).await.unwrap();
+                    self.handle_action(a).unwrap();
                 }
             }
         }
@@ -77,7 +78,7 @@ impl App {
     }
 
     pub fn redraw(&mut self) -> Result<()> {
-        execute!(stdout(), term::Clear(term::ClearType::All))?;
+        queue!(stdout(), term::Clear(term::ClearType::All))?;
 
         self.current_screen().display(
             BoundingBox { x: 0, y: 0, width: 100, height: 25 }
@@ -86,7 +87,7 @@ impl App {
         Ok(())
     }
 
-    pub async fn handle_action(&mut self, action: Action) -> Result<bool> {
+    pub fn handle_action(&mut self, action: Action) -> Result<bool> {
         match action {
             Action::Redraw => {
                 self.redraw()?;

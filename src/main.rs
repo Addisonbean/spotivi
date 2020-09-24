@@ -4,12 +4,9 @@ use tokio::sync::{mpsc, Mutex as TokioMutex};
 #[macro_use]
 extern crate anyhow;
 
-#[macro_use]
-extern crate lazy_static;
-
 use anyhow::Result;
-
 use crossterm::event;
+use lazy_static::lazy_static;
 
 mod api;
 mod app;
@@ -85,7 +82,7 @@ async fn main() -> Result<()> {
             // TODO: What to do when in a text box or something???
             // Probably send not only the KeyBinding but also the raw key entered, ya that...
             if let Some(&key) = config.keybindings.get(&e) {
-                app.lock().unwrap().handle_key(key).await?;
+                app.lock().unwrap().handle_key(key)?;
             }
         }
     }
