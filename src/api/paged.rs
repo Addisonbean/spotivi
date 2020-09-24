@@ -1,6 +1,7 @@
 use rspotify::model::page::Page;
 
 use crate::{
+    send_request,
     app::{Action, NetworkRequest},
     keybindings::KeyBinding,
     api::InteractiveList,
@@ -63,14 +64,15 @@ impl<T> Paged<T> {
             }
             KeyBinding::Down => {
                 self.items.select_next();
-                match self.next_page {
-                    // TODO: don't hard code this page...
-                    // Make a identifier for pages???
-                    // Also TODO: don't keep trying to load more pages when loading one already...
-                    // Another TODO: still redraw, but also load a page...
-                    Some(ref p) if self.needs_next_page() => Some(Action::NetworkRequest(NetworkRequest::LoadPlaylistsPage(p.index))),
-                    _ => Some(Action::Redraw),
+                if let Some(ref p) = self.next_page {
+                    if self.needs_next_page() {
+                        // TODO: don't hard code this page...
+                        // Make a identifier for pages???
+                        // Also TODO: don't keep trying to load more pages when loading one already...
+                        send_request(NetworkRequest::LoadPlaylistsPage(p.index));
+                    }
                 }
+                Some(Action::Redraw)
             }
             _ => return None,
         }

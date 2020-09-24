@@ -2,8 +2,6 @@ use std::io::{stdout, Write};
 use std::process::exit;
 use std::sync::Arc;
 
-use tokio::sync::mpsc::Sender;
-
 use anyhow::Result;
 use crossterm::{
     execute,
@@ -23,16 +21,14 @@ use crate::config::Config;
 pub struct App {
     screens: Vec<Box<dyn Screen + Send>>,
     config: Arc<Config>,
-    sender: Sender<NetworkRequest>,
 }
 
 impl App {
-    pub fn new(sender: Sender<NetworkRequest>, config: Arc<Config>) -> App {
+    pub fn new(config: Arc<Config>) -> App {
         let screens = vec![Box::new(PlaylistsScreen::new()) as Box<dyn Screen + Send>];
         App {
             screens,
             config,
-            sender,
         }
     }
 
@@ -75,7 +71,6 @@ impl App {
                 if let Some(a) = self.current_screen_mut().receive_input(key) {
                     self.handle_action(a).await.unwrap();
                 }
-
             }
         }
         Ok(())
@@ -100,10 +95,6 @@ impl App {
                 self.stop()?;
                 return Ok(false);
             },
-            Action::NetworkRequest(r) => {
-                self.redraw()?;
-                self.sender.send(r).await?;
-            }
             _ => self.notify(action)?,
         }
         Ok(true)
@@ -127,7 +118,6 @@ pub enum Action {
     LoadScreen(ScreenId),
     PushScreen(Box<dyn Screen + Send + Sync>),
     Key(KeyBinding),
-    NetworkRequest(NetworkRequest),
 }
 
 #[derive(Debug)]

@@ -5,6 +5,7 @@ use crossterm::{cursor, queue, style};
 use anyhow::Result;
 
 use crate::{
+    send_request,
     api::{Paged, PlaylistSummary},
     app::{Action, NetworkRequest},
     keybindings::KeyBinding,
@@ -55,13 +56,14 @@ impl Screen for PlaylistsScreen {
     }
 
     fn receive_input(&mut self, input: KeyBinding) -> Option<Action> {
-        Some(match input {
+        match input {
             KeyBinding::Enter => {
-                let id = self.playlists.items().selected_item()?.id();
-                Action::NetworkRequest(NetworkRequest::LoadPlaylist(id.to_owned()))
+                let id = self.playlists.items().selected_item()?.id().to_owned();
+                send_request(NetworkRequest::LoadPlaylist(id));
+                None
             }
-            _ => return self.playlists.receive_input(input),
-        })
+            _ => self.playlists.receive_input(input),
+        }
     }
 
     fn notify(&mut self, action: Action) -> Result<()> {

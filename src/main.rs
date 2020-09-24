@@ -1,8 +1,11 @@
 use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex as TokioMutex};
 
 #[macro_use]
 extern crate anyhow;
+
+#[macro_use]
+extern crate lazy_static;
 
 use anyhow::Result;
 
@@ -19,14 +22,26 @@ use app::{App, Action, NetworkRequest};
 use config::Config;
 use views::PlaylistScreen;
 
+lazy_static! {
+    static ref CHANNEL: (mpsc::Sender<NetworkRequest>, TokioMutex<mpsc::Receiver<NetworkRequest>>) = {
+        // TODO: why 10???
+        let (tx, rx) = mpsc::channel(10);
+        (tx, TokioMutex::new(rx))
+    };
+}
+
+pub fn send_request(r: NetworkRequest) {
+    tokio::spawn(async move {
+        CHANNEL.0.clone().send(r).await.unwrap();
+    });
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Arc::new(Config::new()?);
     let api = Arc::new(SpotifyApi::new(Arc::clone(&config)).await.expect("auth failed..."));
 
-    let (tx, mut rx) = mpsc::channel(10);
-
-    let app = Arc::new(Mutex::new(App::new(tx.clone(), Arc::clone(&config))));
+    let app = Arc::new(Mutex::new(App::new(Arc::clone(&config))));
     app.lock().unwrap().start()?;
     let app_init = Arc::clone(&app);
     let api_init = api.clone();
@@ -36,6 +51,7 @@ async fn main() -> Result<()> {
 
     let app_handler = Arc::clone(&app);
     tokio::spawn(async move {
+        let mut rx = CHANNEL.1.lock().await;
         while let Some(r) = rx.recv().await {
             match r {
                 NetworkRequest::LoadPlaylistsPage(index) => {
