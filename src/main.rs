@@ -17,7 +17,7 @@ mod views;
 use api::SpotifyApi;
 use app::{App, Action, NetworkRequest};
 use config::Config;
-use views::PlaylistScreen;
+use views::{Popup, PlaylistScreen};
 
 lazy_static! {
     static ref CHANNEL: (mpsc::Sender<NetworkRequest>, TokioMutex<mpsc::Receiver<NetworkRequest>>) = {
@@ -59,7 +59,7 @@ async fn main() -> Result<()> {
                         // TODO: instead add playlists to the app object and
                         // like just tell the screen playlists have changed
                         let mut app = app.lock().unwrap();
-                        app.notify(Action::AddPlaylists(p)).unwrap();
+                        app.handle_action(Action::AddPlaylists(p)).unwrap();
                     });
                 }
                 NetworkRequest::LoadPlaylist(id) => {
@@ -90,5 +90,6 @@ async fn main() -> Result<()> {
 
 pub async fn init(app: Arc<Mutex<App>>, api: Arc<SpotifyApi>) -> Result<()> {
     let p = api.get_playlists(0).await.unwrap();
-    app.lock().unwrap().notify(Action::AddPlaylists(p))
+    app.lock().unwrap().handle_action(Action::AddPlaylists(p))?;
+    Ok(())
 }

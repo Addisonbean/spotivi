@@ -9,8 +9,10 @@ use crate::{
 
 mod playlist_screen;
 mod playlists_screen;
+mod popup;
 pub use playlist_screen::PlaylistScreen;
 pub use playlists_screen::PlaylistsScreen;
+pub use popup::Popup;
 
 pub struct BoundingBox {
     pub x: u16,

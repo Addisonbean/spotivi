@@ -14,6 +14,7 @@ use crate::views::{
     BoundingBox,
     PlaylistsScreen,
     Screen,
+    Popup,
 };
 use crate::api::{Paged, PlaylistSummary};
 use crate::keybindings::KeyBinding;
@@ -22,6 +23,7 @@ use crate::config::Config;
 pub struct App {
     screens: Vec<Box<dyn Screen + Send>>,
     config: Arc<Config>,
+    popup: Option<Popup>,
 }
 
 impl App {
@@ -30,6 +32,7 @@ impl App {
         App {
             screens,
             config,
+            popup: None,
         }
     }
 
@@ -96,18 +99,23 @@ impl App {
                 self.stop()?;
                 return Ok(false);
             },
-            _ => self.notify(action)?,
+            Action::Popup(popup) => {
+                self.display_popup(popup)?;
+            },
+            _ => self.current_screen_mut().notify(action)?,
         }
         Ok(true)
-    }
-
-    pub fn notify(&mut self, action: Action) -> Result<()> {
-        self.current_screen_mut().notify(action)
     }
 
     pub fn add_screen(&mut self, s: Box<dyn Screen + Send + Sync>) -> Result<()> {
         self.screens.push(s);
         self.redraw()
+    }
+
+    pub fn display_popup(&mut self, popup: Popup) -> Result<()> {
+        popup.display()?;
+        self.popup = Some(popup);
+        Ok(())
     }
 }
 
@@ -117,8 +125,8 @@ pub enum Action {
     Redraw,
     Quit,
     LoadScreen(ScreenId),
-    PushScreen(Box<dyn Screen + Send + Sync>),
     Key(KeyBinding),
+    Popup(Popup),
 }
 
 #[derive(Debug)]
