@@ -12,7 +12,6 @@ use crossterm::{
 #[derive(Debug)]
 pub struct Popup {
     pub width: u16,
-    pub height: u16,
     pub x: u16,
     pub y: u16,
     pub lines: Vec<String>,
@@ -25,7 +24,6 @@ impl Popup {
         let y = rows / 4;
         Ok(Popup {
             width: x * 2,
-            height: y * 2,
             x,
             y,
             lines,

@@ -17,7 +17,7 @@ mod views;
 use api::SpotifyApi;
 use app::{App, Action, NetworkRequest};
 use config::Config;
-use views::{Popup, PlaylistScreen};
+use views::PlaylistScreen;
 
 lazy_static! {
     static ref CHANNEL: (mpsc::Sender<NetworkRequest>, TokioMutex<mpsc::Receiver<NetworkRequest>>) = {

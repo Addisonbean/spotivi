@@ -9,6 +9,7 @@ use crate::{
     api::{Paged, PlaylistSummary},
     app::{Action, NetworkRequest},
     keybindings::KeyBinding,
+    views::Popup,
 };
 
 use super::{BoundingBox, Screen};
@@ -61,6 +62,17 @@ impl Screen for PlaylistsScreen {
                 let id = self.playlists.items().selected_item()?.id().to_owned();
                 send_request(NetworkRequest::LoadPlaylist(id));
                 None
+            }
+            KeyBinding::InfoPopup => {
+                if let Some(playlist) = self.playlists.items().selected_item() {
+                    let p = Popup::new(vec![
+                        format!("Name: {}", playlist.name()),
+                        "TODO: add more info...".to_owned(),
+                    ]).unwrap();
+                    Some(Action::Popup(p))
+                } else {
+                    None
+                }
             }
             _ => self.playlists.receive_input(input),
         }

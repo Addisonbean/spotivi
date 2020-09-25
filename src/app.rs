@@ -66,6 +66,11 @@ impl App {
     }
 
     pub fn handle_key(&mut self, key: KeyBinding) -> Result<()> {
+        if self.popup.is_some() {
+            self.popup = None;
+            self.redraw()?;
+            return Ok(());
+        }
         match key {
             KeyBinding::Quit => {
                 self.stop()?;
