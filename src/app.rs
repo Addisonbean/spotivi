@@ -16,7 +16,6 @@ use crate::views::{
     Screen,
     Popup,
 };
-use crate::api::{Paged, PlaylistSummary};
 use crate::keybindings::KeyBinding;
 use crate::config::Config;
 
@@ -126,7 +125,7 @@ impl App {
 
 #[derive(Debug)]
 pub enum Action {
-    AddPlaylists(Paged<PlaylistSummary>),
+    PlaylistsUpdated,
     Redraw,
     Quit,
     LoadScreen(ScreenId),
@@ -136,7 +135,7 @@ pub enum Action {
 
 #[derive(Debug)]
 pub enum NetworkRequest {
-    LoadPlaylistsPage(u32),
+    LoadNextPlaylistPage,
     LoadPlaylist(String),
 }
 

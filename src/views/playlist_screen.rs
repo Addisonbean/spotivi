@@ -1,37 +1,46 @@
 use std::io::{stdout, Write};
 
-use crossterm::{cursor, queue, style};
-
 use anyhow::Result;
+use crossterm::{cursor, queue, style};
+use rspotify::model::playlist::PlaylistTrack;
 
 use crate::{
-    api::Playlist,
+    api::Cursor,
+    app::Action,
+    data::PLAYLISTS,
     keybindings::KeyBinding,
+    views::{BoundingBox, Screen},
 };
-use super::{BoundingBox, Screen, Action};
 
 #[derive(Debug)]
 pub struct PlaylistScreen {
-    pub playlist: Playlist,
+    pub playlist_id: String,
+    pub cursor: Cursor<PlaylistTrack>,
 }
 
 impl PlaylistScreen {
-    pub fn new(playlist: Playlist) -> PlaylistScreen {
-        PlaylistScreen { playlist }
+    pub fn new(playlist_id: String) -> PlaylistScreen {
+        PlaylistScreen { playlist_id, cursor: Cursor::new() }
     }
 }
 
 impl Screen for PlaylistScreen {
     fn display(&self, bounds: BoundingBox) -> Result<()> {
+        let playlists = PLAYLISTS.lock().unwrap();
+        let playlist = match playlists.get(&self.playlist_id) {
+            Some(p) => p,
+            None => return Ok(()),
+        };
+
         queue!(
             stdout(),
             cursor::MoveTo(bounds.x, bounds.y),
-            style::Print(self.playlist.name()),
+            style::Print(playlist.name()),
             cursor::MoveToNextLine(1),
         )?;
 
-        for (i, t) in self.playlist.items().iter().enumerate() {
-            if self.playlist.items().is_highlighted(i) {
+        for (i, t) in playlist.items().iter().enumerate() {
+            if self.cursor.is_highlighted(i) {
                 queue!(
                     stdout(),
                     style::SetAttribute(style::Attribute::Reverse),
@@ -56,7 +65,8 @@ impl Screen for PlaylistScreen {
     }
 
     fn receive_input(&mut self, input: KeyBinding) -> Option<Action> {
-        self.playlist.items_mut().receive_input(input)
+        let playlists = PLAYLISTS.lock().unwrap();
+        self.cursor.receive_input(input, playlists.get(&self.playlist_id)?.tracks())
     }
 
     fn notify(&mut self, _action: Action) -> Result<()> {

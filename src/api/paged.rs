@@ -1,12 +1,7 @@
 use rspotify::model::page::Page;
 
-use crate::{
-    send_request,
-    app::{Action, NetworkRequest},
-    keybindings::KeyBinding,
-    api::InteractiveList,
-    api::spotify_api::PAGE_SIZE,
-};
+use crate::send_request;
+use crate::app::NetworkRequest;
 
 #[derive(Debug)]
 pub struct NextPage {
@@ -24,14 +19,14 @@ impl NextPage {
 
 #[derive(Debug)]
 pub struct Paged<T> {
-    items: InteractiveList<T>,
+    items: Vec<T>,
     next_page: Option<NextPage>,
 }
 
 impl<T> Paged<T> {
     pub fn new() -> Paged<T> {
         Paged {
-            items: InteractiveList::new(),
+            items: Vec::new(),
             next_page: None,
         }
     }
@@ -42,51 +37,29 @@ impl<T> Paged<T> {
         self.next_page = page.next_page.map(|p| p.add_offset(old_index));
     }
 
-    pub fn items(&self) -> &InteractiveList<T> {
+    pub fn items(&self) -> &Vec<T> {
         &self.items
-    }
-
-    // TODO: THIS METHOD SHOULDN'T EXIST...
-    // (have some way to just directly call self.items.handle_input)
-    pub fn items_mut(&mut self) -> &mut InteractiveList<T> {
-        &mut self.items
     }
 
     pub fn next_page(&self) -> Option<&NextPage> {
         self.next_page.as_ref()
     }
 
-    pub fn receive_input(&mut self, input: KeyBinding) -> Option<Action> {
-        match input {
-            KeyBinding::Up => {
-                self.items.select_prev();
-                Some(Action::Redraw)
-            }
-            KeyBinding::Down => {
-                self.items.select_next();
-                if let Some(ref p) = self.next_page {
-                    if self.needs_next_page() {
-                        // TODO: don't hard code this page...
-                        // Make a identifier for pages???
-                        // Also TODO: don't keep trying to load more pages when loading one already...
-                        send_request(NetworkRequest::LoadPlaylistsPage(p.index));
-                    }
-                }
-                Some(Action::Redraw)
-            }
-            _ => return None,
-        }
+    pub fn len(&self) -> usize {
+        self.items.len()
     }
 
-    fn needs_next_page(&self) -> bool {
-        (self.items.len() - self.items.index()) <= PAGE_SIZE as usize / 4
+    pub fn load_next(&self, r: NetworkRequest) {
+        if let Some(_) = self.next_page {
+            send_request(r);
+        }
     }
 }
 
 impl<T, U: Into<T>> From<Page<U>> for Paged<T> {
     fn from(page: Page<U>) -> Paged<T> {
         Paged {
-            items: InteractiveList::from(page.items.into_iter().map(Into::into).collect()),
+            items: page.items.into_iter().map(Into::into).collect(),
             next_page: page.next.map(|uri| NextPage { uri, index: 1 }),
         }
     }

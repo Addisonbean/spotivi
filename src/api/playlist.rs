@@ -1,6 +1,6 @@
 use rspotify::model::playlist::{FullPlaylist, PlaylistTrack};
 
-use crate::api::{InteractiveList, Paged};
+use crate::api::Paged;
 
 #[derive(Debug)]
 pub struct Playlist {
@@ -18,13 +18,12 @@ impl Playlist {
         &self.name
     }
 
-    pub fn items(&self) -> &InteractiveList<PlaylistTrack> {
+    pub fn items(&self) -> &Vec<PlaylistTrack> {
         self.tracks.items()
     }
 
-    // TODO: NOPE
-    pub fn items_mut(&mut self) -> &mut InteractiveList<PlaylistTrack> {
-        self.tracks.items_mut()
+    pub fn tracks(&self) -> &Paged<PlaylistTrack> {
+        &self.tracks
     }
 }
 

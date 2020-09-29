@@ -11,12 +11,14 @@ use lazy_static::lazy_static;
 mod api;
 mod app;
 mod config;
+pub mod data;
 mod keybindings;
 mod views;
 
 use api::SpotifyApi;
 use app::{App, Action, NetworkRequest};
 use config::Config;
+use data::{add_playlist, add_playlist_summaries, PLAYLIST_SUMMARIES};
 use views::PlaylistScreen;
 
 lazy_static! {
@@ -51,15 +53,21 @@ async fn main() -> Result<()> {
         let mut rx = CHANNEL.1.lock().await;
         while let Some(r) = rx.recv().await {
             match r {
-                NetworkRequest::LoadPlaylistsPage(index) => {
+                NetworkRequest::LoadNextPlaylistPage => {
                     let api = Arc::clone(&api);
                     let app = Arc::clone(&app_handler);
                     tokio::spawn(async move {
-                        let p = api.get_playlists(index).await.unwrap();
-                        // TODO: instead add playlists to the app object and
-                        // like just tell the screen playlists have changed
-                        let mut app = app.lock().unwrap();
-                        app.handle_action(Action::AddPlaylists(p)).unwrap();
+                        let index = {
+                            let ps = PLAYLIST_SUMMARIES.lock().unwrap();
+                            ps.next_page().map(|np| np.index)
+                        };
+                        if let Some(index) = index {
+                            let p = api.get_playlists(index).await.unwrap();
+                            add_playlist_summaries(p);
+
+                            let mut app = app.lock().unwrap();
+                            app.handle_action(Action::PlaylistsUpdated).unwrap();
+                        }
                     });
                 }
                 NetworkRequest::LoadPlaylist(id) => {
@@ -67,7 +75,10 @@ async fn main() -> Result<()> {
                     let app = Arc::clone(&app_handler);
                     tokio::spawn(async move {
                         let p = api.get_playlist(&id).await.unwrap();
-                        let screen = Box::new(PlaylistScreen::new(p));
+                        let id = p.id().to_owned();
+                        add_playlist(p);
+
+                        let screen = Box::new(PlaylistScreen::new(id));
 
                         // TODO: just notifiy don't add a screen
                         app.lock().unwrap().add_screen(screen).unwrap();
@@ -90,6 +101,7 @@ async fn main() -> Result<()> {
 
 pub async fn init(app: Arc<Mutex<App>>, api: Arc<SpotifyApi>) -> Result<()> {
     let p = api.get_playlists(0).await.unwrap();
-    app.lock().unwrap().handle_action(Action::AddPlaylists(p))?;
+    add_playlist_summaries(p);
+    app.lock().unwrap().handle_action(Action::PlaylistsUpdated)?;
     Ok(())
 }
