@@ -15,7 +15,7 @@ pub mod data;
 mod keybindings;
 mod views;
 
-use api::SpotifyApi;
+use api::{SpotifyApi, PageId};
 use app::{App, Action, NetworkRequest};
 use config::Config;
 use data::{add_playlist, add_playlist_summaries, PLAYLIST_SUMMARIES};
@@ -53,20 +53,25 @@ async fn main() -> Result<()> {
         let mut rx = CHANNEL.1.lock().await;
         while let Some(r) = rx.recv().await {
             match r {
-                NetworkRequest::LoadNextPlaylistPage => {
+                NetworkRequest::LoadNextPage(page_id) => {
                     let api = Arc::clone(&api);
                     let app = Arc::clone(&app_handler);
                     tokio::spawn(async move {
-                        let index = {
-                            let ps = PLAYLIST_SUMMARIES.lock().unwrap();
-                            ps.next_page().map(|np| np.index)
-                        };
-                        if let Some(index) = index {
-                            let p = api.get_playlists(index).await.unwrap();
-                            add_playlist_summaries(p);
+                        match page_id {
+                            PageId::Playlists => {
+                                let index = {
+                                    let ps = PLAYLIST_SUMMARIES.lock().unwrap();
+                                    ps.next_page().map(|np| np.index)
+                                };
+                                if let Some(index) = index {
+                                    let p = api.get_playlists(index).await.unwrap();
+                                    add_playlist_summaries(p);
 
-                            let mut app = app.lock().unwrap();
-                            app.handle_action(Action::PlaylistsUpdated).unwrap();
+                                    let mut app = app.lock().unwrap();
+                                    app.handle_action(Action::PlaylistsUpdated).unwrap();
+                                }
+                            }
+                            PageId::Playlist(_) => {}
                         }
                     });
                 }

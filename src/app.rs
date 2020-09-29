@@ -10,6 +10,7 @@ use crossterm::{
     queue,
 };
 
+use crate::api::PageId;
 use crate::views::{
     BoundingBox,
     PlaylistsScreen,
@@ -135,7 +136,7 @@ pub enum Action {
 
 #[derive(Debug)]
 pub enum NetworkRequest {
-    LoadNextPlaylistPage,
+    LoadNextPage(PageId),
     LoadPlaylist(String),
 }
 

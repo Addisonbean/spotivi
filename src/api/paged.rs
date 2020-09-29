@@ -3,6 +3,12 @@ use rspotify::model::page::Page;
 use crate::send_request;
 use crate::app::NetworkRequest;
 
+#[derive(Clone, Debug)]
+pub enum PageId {
+    Playlists,
+    Playlist(String),
+}
+
 #[derive(Debug)]
 pub struct NextPage {
     pub index: u32,
@@ -21,13 +27,15 @@ impl NextPage {
 pub struct Paged<T> {
     items: Vec<T>,
     next_page: Option<NextPage>,
+    page_id: PageId,
 }
 
 impl<T> Paged<T> {
-    pub fn new() -> Paged<T> {
+    pub fn new(page_id: PageId) -> Paged<T> {
         Paged {
             items: Vec::new(),
             next_page: None,
+            page_id,
         }
     }
 
@@ -49,18 +57,19 @@ impl<T> Paged<T> {
         self.items.len()
     }
 
-    pub fn load_next(&self, r: NetworkRequest) {
+    pub fn load_next(&self) {
         if let Some(_) = self.next_page {
-            send_request(r);
+            send_request(NetworkRequest::LoadNextPage(self.page_id.clone()));
         }
     }
 }
 
-impl<T, U: Into<T>> From<Page<U>> for Paged<T> {
-    fn from(page: Page<U>) -> Paged<T> {
+impl<T> Paged<T> {
+    pub fn from<U: Into<T>>(page: Page<U>, page_id: PageId) -> Paged<T> {
         Paged {
             items: page.items.into_iter().map(Into::into).collect(),
             next_page: page.next.map(|uri| NextPage { uri, index: 1 }),
+            page_id,
         }
     }
 }

@@ -4,7 +4,7 @@ mod playlist;
 mod playlist_summary;
 mod spotify_api;
 pub use cursor::Cursor;
-pub use paged::{NextPage, Paged};
+pub use paged::{NextPage, Paged, PageId};
 pub use playlist::Playlist;
 pub use playlist_summary::PlaylistSummary;
 pub use spotify_api::SpotifyApi;

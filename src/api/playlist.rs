@@ -1,6 +1,6 @@
 use rspotify::model::playlist::{FullPlaylist, PlaylistTrack};
 
-use crate::api::Paged;
+use crate::api::{Paged, PageId};
 
 #[derive(Debug)]
 pub struct Playlist {
@@ -30,9 +30,9 @@ impl Playlist {
 impl From<FullPlaylist> for Playlist {
     fn from(p: FullPlaylist) -> Playlist {
         Playlist {
-            id: p.id,
+            id: p.id.clone(),
             name: p.name,
-            tracks: p.tracks.into(),
+            tracks: Paged::from(p.tracks, PageId::Playlist(p.id.clone())),
         }
     }
 }

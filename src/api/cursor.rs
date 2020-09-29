@@ -4,7 +4,7 @@ use crate::api::spotify_api::PAGE_SIZE;
 
 use crate::{
     api::Paged,
-    app::{Action, NetworkRequest},
+    app::Action,
     keybindings::KeyBinding,
 };
 
@@ -54,10 +54,7 @@ impl<T> Cursor<T> {
             KeyBinding::Down => {
                 self.select_next(paged.len());
                 if self.needs_next_page(paged.len()) {
-                    // TODO: don't hard code this page...
-                    // Make a identifier for pages???
-                    // Also TODO: don't keep trying to load more pages when loading one already...
-                    paged.load_next(NetworkRequest::LoadNextPlaylistPage);
+                    paged.load_next();
                 }
                 Some(Action::Redraw)
             }

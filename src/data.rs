@@ -5,12 +5,13 @@ use lazy_static::lazy_static;
 
 use crate::api::{
     Paged,
+    PageId,
     Playlist,
     PlaylistSummary,
 };
 
 lazy_static! {
-    pub static ref PLAYLIST_SUMMARIES: Arc<Mutex<Paged<PlaylistSummary>>> = Arc::new(Mutex::new(Paged::new()));
+    pub static ref PLAYLIST_SUMMARIES: Arc<Mutex<Paged<PlaylistSummary>>> = Arc::new(Mutex::new(Paged::new(PageId::Playlists)));
     pub static ref PLAYLISTS: Arc<Mutex<HashMap<String, Playlist>>> = Arc::new(Mutex::new(HashMap::new()));
 }
 
