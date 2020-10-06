@@ -65,10 +65,18 @@ impl Screen for PlaylistsScreen {
             KeyBinding::InfoPopup => {
                 let playlists = PLAYLIST_SUMMARIES.lock().unwrap();
                 if let Some(playlist) = self.cursor.selected_item(playlists.items()) {
-                    let p = Popup::new(vec![
+                    let mut lines = vec![
                         format!("Name: {}", playlist.name()),
-                        "TODO: add more info...".to_owned(),
-                    ]).unwrap();
+                        format!("Owner: {}", playlist.owner_name().unwrap_or("ugh")),
+                        format!("Collaborative: {}", playlist.collaborative()),
+                    ];
+
+                    if let Some(public) = playlist.is_public() {
+                        let public_msg = if public { "yes" } else { "no" };
+                        lines.push(format!("Public: {}", public_msg));
+                    }
+
+                    let p = Popup::new(lines).unwrap();
                     Some(Action::Popup(p))
                 } else {
                     None
