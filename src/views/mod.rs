@@ -24,5 +24,5 @@ pub struct BoundingBox {
 pub trait Screen: Debug {
     fn display(&self, bounds: BoundingBox) -> Result<()>;
     fn receive_input(&mut self, input: KeyBinding) -> Option<Action>;
-    fn notify(&mut self, action: Action) -> Result<()>;
+    fn notify(&mut self, action: Action) -> Option<Action>;
 }

@@ -69,7 +69,7 @@ impl Screen for PlaylistScreen {
         self.cursor.receive_input(input, playlists.get(&self.playlist_id)?.tracks())
     }
 
-    fn notify(&mut self, _action: Action) -> Result<()> {
-        Ok(())
+    fn notify(&mut self, _action: Action) -> Option<Action> {
+        None
     }
 }

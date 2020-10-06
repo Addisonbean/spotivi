@@ -88,8 +88,9 @@ impl App {
     pub fn redraw(&mut self) -> Result<()> {
         queue!(stdout(), term::Clear(term::ClearType::All))?;
 
+        let (w, h) = term::size()?;
         self.current_screen().display(
-            BoundingBox { x: 0, y: 0, width: 100, height: 25 }
+            BoundingBox { x: 0, y: 0, width: w, height: h }
         )?;
 
         Ok(())
@@ -107,7 +108,11 @@ impl App {
             Action::Popup(popup) => {
                 self.display_popup(popup)?;
             },
-            _ => self.current_screen_mut().notify(action)?,
+            _ => {
+                if let Some(action) = self.current_screen_mut().notify(action) {
+                    return self.handle_action(action);
+                }
+            }
         }
         Ok(true)
     }

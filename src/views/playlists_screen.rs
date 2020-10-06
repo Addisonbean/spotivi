@@ -74,15 +74,10 @@ impl Screen for PlaylistsScreen {
         }
     }
 
-    fn notify(&mut self, action: Action) -> Result<()> {
+    fn notify(&mut self, action: Action) -> Option<Action> {
         match action {
-            Action::PlaylistsUpdated => {
-                self.display(
-                    BoundingBox { x: 0, y: 0, width: 100, height: 25 }
-                )?;
-            }
-            _ => {},
+            Action::PlaylistsUpdated => Some(Action::Redraw),
+            _ => None,
         }
-        Ok(())
     }
 }
