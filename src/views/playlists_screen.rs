@@ -9,7 +9,7 @@ use crate::{
     app::{Action, NetworkRequest},
     data::PLAYLIST_SUMMARIES,
     keybindings::KeyBinding,
-    views::{BoundingBox, Popup, Screen},
+    views::{BoundingBox, Screen},
 };
 
 #[derive(Debug)]
@@ -64,23 +64,11 @@ impl Screen for PlaylistsScreen {
             }
             KeyBinding::InfoPopup => {
                 let playlists = PLAYLIST_SUMMARIES.lock().unwrap();
-                if let Some(playlist) = self.cursor.selected_item(playlists.items()) {
-                    let mut lines = vec![
-                        format!("Name: {}", playlist.name()),
-                        format!("Owner: {}", playlist.owner_name().unwrap_or("ugh")),
-                        format!("Collaborative: {}", playlist.collaborative()),
-                    ];
 
-                    if let Some(public) = playlist.is_public() {
-                        let public_msg = if public { "yes" } else { "no" };
-                        lines.push(format!("Public: {}", public_msg));
-                    }
-
-                    let p = Popup::new(lines).unwrap();
-                    Some(Action::Popup(p))
-                } else {
-                    None
-                }
+                self.cursor
+                    .selected_item(playlists.items())
+                    .and_then(|p| p.info_popup().ok())
+                    .map(Action::Popup)
             }
             _ => self.cursor.receive_input(input, &*PLAYLIST_SUMMARIES.lock().unwrap()),
         }

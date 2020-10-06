@@ -1,4 +1,7 @@
+use anyhow::Result;
 use rspotify::model::playlist::SimplifiedPlaylist;
+
+use crate::views::Popup;
 
 #[derive(Debug)]
 pub struct PlaylistSummary {
@@ -28,6 +31,21 @@ impl PlaylistSummary {
 
     pub fn is_public(&self) -> Option<bool> {
         self.public
+    }
+
+    pub fn info_popup(&self) -> Result<Popup> {
+        let mut lines = vec![
+            format!("Name: {}", self.name),
+            format!("Owner: {}", self.owner_name().unwrap_or("<unknown>")),
+            format!("Collaborative: {}", self.collaborative),
+        ];
+
+        if let Some(public) = self.is_public() {
+            let public_msg = if public { "yes" } else { "no" };
+            lines.push(format!("Public: {}", public_msg));
+        }
+
+        Popup::new(lines)
     }
 }
 
