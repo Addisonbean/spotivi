@@ -134,7 +134,6 @@ pub enum Action {
     PlaylistsUpdated,
     Redraw,
     Quit,
-    LoadScreen(ScreenId),
     Key(KeyBinding),
     Popup(Popup),
 }
@@ -143,9 +142,4 @@ pub enum Action {
 pub enum NetworkRequest {
     LoadNextPage(PageId),
     LoadPlaylist(String),
-}
-
-#[derive(Debug)]
-pub enum ScreenId {
-    Playlist(String),
 }
