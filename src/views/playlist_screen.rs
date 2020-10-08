@@ -2,10 +2,9 @@ use std::io::{stdout, Write};
 
 use anyhow::Result;
 use crossterm::{cursor, queue, style};
-use rspotify::model::playlist::PlaylistTrack;
 
 use crate::{
-    api::Cursor,
+    api::{Cursor, PlaylistTrack},
     app::Action,
     data::PLAYLISTS,
     keybindings::KeyBinding,
@@ -47,7 +46,7 @@ impl Screen for PlaylistScreen {
                 )?;
             }
             let name = if let Some(ref track) = t.track {
-                &track.name
+                &track.full_track.name
             } else {
                 "(N/A)"
             };
@@ -65,8 +64,22 @@ impl Screen for PlaylistScreen {
     }
 
     fn receive_input(&mut self, input: KeyBinding) -> Option<Action> {
-        let playlists = PLAYLISTS.lock().unwrap();
-        self.cursor.receive_input(input, playlists.get(&self.playlist_id)?.tracks())
+        match input {
+            KeyBinding::InfoPopup => {
+                let playlists = PLAYLISTS.lock().unwrap();
+                let tracks = playlists.get(&self.playlist_id)?.tracks();
+                let track = self.cursor.selected_item(&tracks.items()[..])?;
+
+                track.track
+                    .as_ref()
+                    .and_then(|p| p.info_popup().ok())
+                    .map(Action::Popup)
+            }
+            _ => {
+                let playlists = PLAYLISTS.lock().unwrap();
+                self.cursor.receive_input(input, playlists.get(&self.playlist_id)?.tracks())
+            }
+        }
     }
 
     fn notify(&mut self, _action: Action) -> Option<Action> {

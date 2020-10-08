@@ -1,6 +1,6 @@
-use rspotify::model::playlist::{FullPlaylist, PlaylistTrack};
+use rspotify::model::playlist::FullPlaylist;
 
-use crate::api::{Paged, PageId};
+use crate::api::{Paged, PageId, PlaylistTrack};
 
 #[derive(Debug)]
 pub struct Playlist {
