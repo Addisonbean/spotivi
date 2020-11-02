@@ -1,5 +1,6 @@
+// use std::sync::{Arc, Mutex, RwLock};
 use std::sync::{Arc, Mutex};
-use tokio::sync::{mpsc, Mutex as TokioMutex};
+use tokio::sync::{mpsc, Mutex as TokioMutex, RwLock};
 
 #[macro_use]
 extern crate anyhow;
@@ -38,7 +39,7 @@ pub fn send_request(r: NetworkRequest) {
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Arc::new(Config::new()?);
-    let api = Arc::new(SpotifyApi::new(Arc::clone(&config)).await.expect("auth failed..."));
+    let api = Arc::new(RwLock::new(SpotifyApi::new(Arc::clone(&config)).await.expect("auth failed...")));
 
     let app = Arc::new(Mutex::new(App::new(Arc::clone(&config))));
     app.lock().unwrap().start()?;
@@ -64,7 +65,7 @@ async fn main() -> Result<()> {
                                     ps.next_page().map(|np| np.index)
                                 };
                                 if let Some(index) = index {
-                                    let p = api.get_playlists(index).await.unwrap();
+                                    let p = api.read().await.get_playlists(index).await.unwrap();
                                     add_playlist_summaries(p);
 
                                     let mut app = app.lock().unwrap();
@@ -79,7 +80,7 @@ async fn main() -> Result<()> {
                     let api = Arc::clone(&api);
                     let app = Arc::clone(&app_handler);
                     tokio::spawn(async move {
-                        let p = api.get_playlist(&id).await.unwrap();
+                        let p = api.read().await.get_playlist(&id).await.unwrap();
                         let id = p.id().to_owned();
                         add_playlist(p);
 
@@ -89,9 +90,45 @@ async fn main() -> Result<()> {
                         app.lock().unwrap().add_screen(screen).unwrap();
                     });
                 }
+                NetworkRequest::GetDevices => {
+                    let api1 = Arc::clone(&api);
+                    let api2 = Arc::clone(&api);
+                    tokio::spawn(async move {
+                        let device_id = api1.read().await
+                            .get_devices()
+                            .await
+                            .unwrap()
+                            .into_iter()
+                            .next()
+                            .map(|d| d.id);
+
+                        api1.write().await.set_device_id(device_id);
+                    });
+                    tokio::spawn(async move {
+                        let is_playing = api2.read().await
+                            .playback_status()
+                            .await
+                            .unwrap()
+                            .map(|ctx| ctx.is_playing)
+                            .unwrap_or(false);
+
+                        api2.write().await.set_playing(is_playing);
+                    });
+                }
+                NetworkRequest::TogglePlayback => {
+                    use rspotify::client::ApiError;
+                    let api = Arc::clone(&api);
+                    tokio::spawn(async move {
+                        match api.write().await.toggle_playback().await {
+                            _ => {}
+                        };
+                    });
+                }
             }
         }
     });
+
+    send_request(NetworkRequest::GetDevices);
 
     loop {
         if let Ok(event::Event::Key(e)) = event::read() {
@@ -104,8 +141,8 @@ async fn main() -> Result<()> {
     }
 }
 
-pub async fn init(app: Arc<Mutex<App>>, api: Arc<SpotifyApi>) -> Result<()> {
-    let p = api.get_playlists(0).await.unwrap();
+pub async fn init(app: Arc<Mutex<App>>, api: Arc<RwLock<SpotifyApi>>) -> Result<()> {
+    let p = api.read().await.get_playlists(0).await.unwrap();
     add_playlist_summaries(p);
     app.lock().unwrap().handle_action(Action::PlaylistsUpdated)?;
     Ok(())

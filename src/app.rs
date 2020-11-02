@@ -142,4 +142,6 @@ pub enum Action {
 pub enum NetworkRequest {
     LoadNextPage(PageId),
     LoadPlaylist(String),
+    GetDevices,
+    TogglePlayback,
 }

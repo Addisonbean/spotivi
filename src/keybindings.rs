@@ -11,6 +11,7 @@ pub enum KeyBinding {
     Enter,
     Quit,
     InfoPopup,
+    TogglePlayback,
 }
 
 fn char_event(c: char, mods: Option<KeyModifiers>) -> KeyEvent {
@@ -26,4 +27,5 @@ pub fn default_keybindings(keys: &mut KeyBindings) {
         KeyBinding::Enter,
     );
     keys.insert(char_event('K', Some(KeyModifiers::SHIFT)), KeyBinding::InfoPopup);
+    keys.insert(char_event(' ', None), KeyBinding::TogglePlayback);
 }
