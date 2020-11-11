@@ -10,6 +10,7 @@ use crossterm::{
     queue,
 };
 
+use crate::send_request;
 use crate::api::PageId;
 use crate::views::{
     BoundingBox,
@@ -75,6 +76,9 @@ impl App {
             KeyBinding::Quit => {
                 self.stop()?;
                 exit(0);
+            }
+            KeyBinding::TogglePlayback => {
+                send_request(NetworkRequest::TogglePlayback);
             }
             _ => {
                 if let Some(a) = self.current_screen_mut().receive_input(key) {

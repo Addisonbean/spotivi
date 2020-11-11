@@ -70,10 +70,6 @@ impl Screen for PlaylistsScreen {
                     .and_then(|p| p.info_popup().ok())
                     .map(Action::Popup)
             }
-            KeyBinding::TogglePlayback => {
-                send_request(NetworkRequest::TogglePlayback);
-                None
-            }
             _ => self.cursor.receive_input(input, &*PLAYLIST_SUMMARIES.lock().unwrap()),
         }
     }
