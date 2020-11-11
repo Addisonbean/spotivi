@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use tokio::sync::RwLock;
 
 use anyhow::Result;
 use rspotify::client::Spotify;
@@ -99,6 +98,22 @@ impl SpotifyApi {
 
     pub fn set_playing(&mut self, playing: bool) {
         self.playing = playing;
+    }
+
+    pub async fn play_from_uri(&mut self, uri: String) -> Result<()> {
+        self.client
+            .start_playback(
+                self.device_id.clone(),
+                None,
+                Some(vec![uri]),
+                None,
+                None,
+            )
+            .await
+            .map_err(|e| anyhow!(e))?;
+
+        self.playing = true;
+        Ok(())
     }
 }
 

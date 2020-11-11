@@ -144,4 +144,5 @@ pub enum NetworkRequest {
     LoadPlaylist(String),
     GetDevices,
     TogglePlayback,
+    PlayUri(String),
 }

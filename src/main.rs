@@ -116,12 +116,17 @@ async fn main() -> Result<()> {
                     });
                 }
                 NetworkRequest::TogglePlayback => {
-                    use rspotify::client::ApiError;
                     let api = Arc::clone(&api);
                     tokio::spawn(async move {
                         match api.write().await.toggle_playback().await {
                             _ => {}
                         };
+                    });
+                }
+                NetworkRequest::PlayUri(uri) => {
+                    let api = Arc::clone(&api);
+                    tokio::spawn(async move {
+                        api.write().await.play_from_uri(uri).await.unwrap();
                     });
                 }
             }

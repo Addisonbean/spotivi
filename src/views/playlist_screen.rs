@@ -4,8 +4,9 @@ use anyhow::Result;
 use crossterm::{cursor, queue, style};
 
 use crate::{
+    send_request,
     api::{Cursor, PlaylistTrack},
-    app::Action,
+    app::{Action, NetworkRequest},
     data::PLAYLISTS,
     keybindings::KeyBinding,
     views::{BoundingBox, Screen},
@@ -74,6 +75,15 @@ impl Screen for PlaylistScreen {
                     .as_ref()
                     .and_then(|p| p.info_popup().ok())
                     .map(Action::Popup)
+            }
+            KeyBinding::Enter => {
+                let playlists = PLAYLISTS.lock().unwrap();
+                let tracks = playlists.get(&self.playlist_id)?.tracks();
+                let track = self.cursor.selected_item(&tracks.items()[..])?;
+                let uri = track.track.as_ref().unwrap().full_track.uri.clone();
+
+                send_request(NetworkRequest::PlayUri(uri));
+                None
             }
             _ => {
                 let playlists = PLAYLISTS.lock().unwrap();
