@@ -1,7 +1,7 @@
 use std::io::{stdout, Write};
 
 use anyhow::Result;
-use crossterm::{cursor, queue, style};
+use crossterm::{cursor, queue, style, terminal};
 
 use crate::{
     send_request,
@@ -87,7 +87,7 @@ impl Screen for PlaylistScreen {
             }
             _ => {
                 let playlists = PLAYLISTS.lock().unwrap();
-                self.cursor.receive_input(input, playlists.get(&self.playlist_id)?.tracks())
+                self.cursor.receive_input(input, playlists.get(&self.playlist_id)?.tracks(), terminal::size().ok()?.1 - 1)
             }
         }
     }

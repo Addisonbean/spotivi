@@ -1,7 +1,7 @@
 use std::io::{stdout, Write};
 
 use anyhow::Result;
-use crossterm::{cursor, queue, style};
+use crossterm::{cursor, queue, style, terminal};
 
 use crate::{
     send_request,
@@ -25,6 +25,8 @@ impl PlaylistsScreen {
 
 impl Screen for PlaylistsScreen {
     fn display(&self, bounds: BoundingBox) -> Result<()> {
+        let height = terminal::size()?.1 as usize;
+
         let playlists = PLAYLIST_SUMMARIES.lock().unwrap();
 
         queue!(
@@ -34,7 +36,10 @@ impl Screen for PlaylistsScreen {
             cursor::MoveToNextLine(1),
         )?;
 
-        for (i, p) in playlists.items().iter().enumerate() {
+        let offset = self.cursor.offset();
+        let lines_drawn = 1;
+
+        for (i, p) in playlists.items().iter().enumerate().skip(offset).take(height - lines_drawn) {
             if self.cursor.is_highlighted(i) {
                 queue!(
                     stdout(),
@@ -70,7 +75,8 @@ impl Screen for PlaylistsScreen {
                     .and_then(|p| p.info_popup().ok())
                     .map(Action::Popup)
             }
-            _ => self.cursor.receive_input(input, &*PLAYLIST_SUMMARIES.lock().unwrap()),
+            // TODO: don't just always subtract 1 here...
+            _ => self.cursor.receive_input(input, &*PLAYLIST_SUMMARIES.lock().unwrap(), terminal::size().ok()?.1 - 1),
         }
     }
 

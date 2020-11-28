@@ -10,7 +10,8 @@ use rspotify::oauth2::SpotifyOAuth;
 use crate::config::Config;
 use crate::api::{Paged, PageId, Playlist, PlaylistSummary};
 
-pub const PAGE_SIZE: u32 = 8;
+// Spotify's api doesn't allow this to go higher than 50...
+pub const PAGE_SIZE: u32 = 50;
 
 pub struct SpotifyApi {
     client: Spotify,
