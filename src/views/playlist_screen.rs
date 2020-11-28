@@ -26,6 +26,8 @@ impl PlaylistScreen {
 
 impl Screen for PlaylistScreen {
     fn display(&self, bounds: BoundingBox) -> Result<()> {
+        let height = terminal::size()?.1 as usize;
+
         let playlists = PLAYLISTS.lock().unwrap();
         let playlist = match playlists.get(&self.playlist_id) {
             Some(p) => p,
@@ -39,7 +41,10 @@ impl Screen for PlaylistScreen {
             cursor::MoveToNextLine(1),
         )?;
 
-        for (i, t) in playlist.items().iter().enumerate() {
+        let offset = self.cursor.offset();
+        let lines_drawn = 1;
+
+        for (i, t) in playlist.items().iter().enumerate().skip(offset).take(height - lines_drawn) {
             if self.cursor.is_highlighted(i) {
                 queue!(
                     stdout(),
