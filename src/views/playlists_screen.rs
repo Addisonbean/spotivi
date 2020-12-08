@@ -5,7 +5,7 @@ use crossterm::{cursor, queue, style, terminal};
 
 use crate::{
     send_request,
-    api::{Cursor, PlaylistSummary},
+    api::Cursor,
     app::{Action, NetworkRequest},
     data::PLAYLIST_SUMMARIES,
     keybindings::KeyBinding,
@@ -14,7 +14,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct PlaylistsScreen {
-    cursor: Cursor<PlaylistSummary>,
+    cursor: Cursor,
 }
 
 impl PlaylistsScreen {
@@ -36,23 +36,17 @@ impl Screen for PlaylistsScreen {
             cursor::MoveToNextLine(1),
         )?;
 
-        let offset = self.cursor.offset();
         let lines_drawn = 1;
-
-        for (i, p) in playlists.items().iter().enumerate().skip(offset).take(height - lines_drawn) {
-            if self.cursor.is_highlighted(i) {
+        self.cursor.queue_draw(
+            playlists.items().iter(),
+            height - lines_drawn,
+            |p| {
                 queue!(
                     stdout(),
-                    style::SetAttribute(style::Attribute::Reverse),
-                )?;
-            }
-            queue!(
-                stdout(),
-                style::Print(p.name()),
-                cursor::MoveToNextLine(1),
-                style::SetAttribute(style::Attribute::Reset),
-            )?;
-        }
+                    style::Print(p.name()),
+                ).map_err(|e| anyhow!(e))
+            },
+        )?;
 
         stdout().flush()?;
 

@@ -1,7 +1,9 @@
-use std::marker::PhantomData;
+use std::io::{stdout, Write};
+
+use anyhow::Result;
+use crossterm::{cursor, queue, style};
 
 use crate::api::spotify_api::PAGE_SIZE;
-
 use crate::{
     api::Paged,
     app::Action,
@@ -9,30 +11,24 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct Cursor<T> {
+pub struct Cursor {
     index: usize,
     scroll_offset: usize,
-    _phantom: PhantomData<T>,
 }
 
-impl<T> Cursor<T> {
-    pub fn new() -> Cursor<T> {
+impl Cursor {
+    pub fn new() -> Cursor {
         Cursor {
             index: 0,
             scroll_offset: 0,
-            _phantom: PhantomData
         }
     }
 
-    pub fn offset(&self) -> usize {
-        self.scroll_offset
-    }
-
-    pub fn get<'a>(&self, index: usize, items: &'a [T]) -> Option<&'a T> {
+    pub fn get<'a, T: 'a>(&self, index: usize, items: &'a [T]) -> Option<&'a T> {
         items.get(index)
     }
 
-    pub fn selected_item<'a>(&self, items: &'a [T]) -> Option<&'a T> {
+    pub fn selected_item<'a, T: 'a>(&self, items: &'a [T]) -> Option<&'a T> {
         items.get(self.index)
     }
 
@@ -57,11 +53,34 @@ impl<T> Cursor<T> {
         }
     }
 
+    pub fn queue_draw<'a, T: 'a>(&self, items: impl Iterator<Item=&'a T>, height: usize, display_item: impl Fn(&'a T) -> Result<()>) -> Result<()> {
+        for (i, t) in items.enumerate().skip(self.scroll_offset).take(height) {
+            if self.is_highlighted(i) {
+                queue!(
+                    stdout(),
+                    style::SetAttribute(style::Attribute::Reverse),
+                )?;
+            }
+
+            // TODO: maybe pass more info, like the index and if it's highlighted and stuff
+            display_item(t)?;
+
+            queue!(
+                stdout(),
+                style::SetAttribute(style::Attribute::Reset),
+                cursor::MoveToNextLine(1),
+            )?;
+        }
+
+        Ok(())
+    }
+
+    // TODO: make private???
     pub fn is_highlighted(&self, i: usize) -> bool {
         self.index == i
     }
 
-    pub fn receive_input(&mut self, input: KeyBinding, paged: &Paged<T>, height: u16) -> Option<Action> {
+    pub fn receive_input<T>(&mut self, input: KeyBinding, paged: &Paged<T>, height: u16) -> Option<Action> {
         match input {
             KeyBinding::Up => {
                 self.select_prev();
